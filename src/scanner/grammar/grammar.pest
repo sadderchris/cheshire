@@ -1,0 +1,94 @@
+WHITESPACE = _{ " " | "\t" | "\r" | "\n" | WHITE_SPACE }
+COMMENT = _{ line_comment | block_comment }
+	line_comment = @{ ";" ~ rest_of_line }
+	block_comment = @{ "#|" ~ !("|#") ~ ANY* ~ "|#" }
+	datum_comment = @{ "#;" ~ datum }
+	rest_of_line = @{ (!(NEWLINE | EOI) ~ ANY)* }
+
+identifier = @{ initial ~ subsequent* | peculiar_identifier }
+initial = _{ ASCII_ALPHA | special_initial }
+    special_initial = _{ "!" | "$" | "%" | "&" | "*" | "/" | ":" | "<" | "=" | ">" | "?" | "~" | "_" | "^" }
+subsequent = _{ initial | ASCII_DIGIT | special_subsequent }
+	special_subsequent = _{ "." | "+" | "-" | "@" }
+peculiar_identifier = _{ "+" | "-" | "..." }
+
+boolean = { ^"#t" | ^"#f" }
+character = ${ "#\\" ~ raw_character }
+	raw_character = { ^"space" | ^"newline" | ANY }
+string = ${ "\"" ~ raw_string ~ "\"" }
+	raw_string = { ("\\\"" | "\\\\" | !("\"") ~ ANY)* }
+
+number = ${ num_2 | num_8 | num_10 | num_16 }
+
+num_2 = { prefix_2 ~ complex_2 }
+complex_2 = _{
+	"+" ~ imag_2 | "-" ~ imag_2
+	| real_2 ~ "+" ~ imag_2 | real_2 ~ "-" ~ imag_2
+	| real_2 ~ "@" ~ real_2 | real_2
+}
+imag_2 = _{ "i" | ureal_2 ~ "i" }
+real_2 = _{ sign? ~ ureal_2 }
+ureal_2 = _{ uinteger_2 | uinteger_2 ~ "/" ~ uinteger_2 }
+uinteger_2 = _{ ASCII_BIN_DIGIT+ ~ "#"* }
+prefix_2 = _{ radix_2 ~ exactness? | exactness? ~ radix_2 }
+num_8 = { prefix_8 ~ complex_8 }
+complex_8 = _{
+	"+" ~ imag_8 | "-" ~ imag_8
+	| real_8 ~ "+" ~ imag_8 | real_8 ~ "-" ~ imag_8
+	| real_8 ~ "@" ~ real_8 | real_8
+}
+imag_8 = _{ "i" | ureal_8 ~ "i" }
+real_8 = _{ sign? ~ ureal_8 }
+ureal_8 = _{ uinteger_8 | uinteger_8 ~ "/" ~ uinteger_8 }
+uinteger_8 = _{ ASCII_OCT_DIGIT+ ~ "#"* }
+prefix_8 = _{ radix_8 ~ exactness? | exactness? ~ radix_8 }
+num_10 = { prefix_10? ~ complex_10 }
+complex_10 = _{
+	"+" ~ imag_10 | "-" ~ imag_10
+	| real_10 ~ "+" ~ imag_10 | real_10 ~ "-" ~ imag_10
+	| real_10 ~ "@" ~ real_10 | real_10
+}
+imag_10 = _{ "i" | ureal_10 ~ "i" }
+real_10 = _{ sign? ~ ureal_10 }
+ureal_10 = _{ decimal_10 | urational_10 | uinteger_10 }
+urational_10 = { uinteger_10 ~ "/" ~ uinteger_10 }
+uinteger_10 = { ASCII_DIGIT+ ~ "#"* }
+prefix_10 = _{ radix_10 ~ exactness? | exactness ~ radix_10? }
+decimal_10 = _{
+	uinteger_10 ~ exponent
+	| "." ~ ASCII_DIGIT+ ~ "#"* ~ exponent?
+	| ASCII_DIGIT+ ~ "." ~ ASCII_DIGIT* ~ "#"* ~ exponent?
+	| ASCII_DIGIT+ ~ "#"+ ~ "." ~ "#"* ~ exponent?
+}
+num_16 = { prefix_16 ~ complex_16 }
+complex_16 = _{
+	"+" ~ imag_16 | "-" ~ imag_16
+	| real_16 ~ "+" ~ imag_16 | real_16 ~ "-" ~ imag_16
+	| real_16 ~ "@" ~ real_16 | real_16
+}
+imag_16 = _{ "i" | ureal_16 ~ "i" }
+real_16 = _{ sign? ~ ureal_16 }
+ureal_16 = _{ uinteger_16 | uinteger_16 ~ "/" ~ uinteger_16 }
+uinteger_16 = _{ ASCII_HEX_DIGIT+ ~ "#"* }
+prefix_16 = _{ radix_16 ~ exactness? | exactness? ~ radix_16 }
+exponent = _{ exponent_marker ~ sign? ~ ASCII_DIGIT+ }
+exponent_marker = _{ ^"e" | ^"s" | ^"f" | ^"d" | ^"l" }
+sign = _{ "+" | "-" }
+exactness = _{ ^"#i" | ^"#e" }
+radix_2 = _{ ^"#b" }
+radix_8 = _{ ^"#o" }
+radix_10 = _{ ^"#d" }
+radix_16 = _{ ^"#x" }
+
+program = _{ SOI ~ datum* ~ EOI }
+repl = _{ datum | COMMENT | EOI }
+datum = _{ simple_datum | compound_datum }
+simple_datum = _{ boolean | number | character | string | symbol }
+	symbol = { identifier }
+compound_datum = _{ list | vector }
+	list = _{ proper_list | improper_list | abbreviation }
+	proper_list = { "(" ~ datum* ~ ")" }
+	improper_list = { "(" ~ datum+ ~ "." ~ datum ~ ")" }
+	abbreviation = { abbrev_prefix ~ datum }
+	abbrev_prefix = { "'" | "`" | ",@" | "," }
+	vector = { "#(" ~ datum* ~ ")" }

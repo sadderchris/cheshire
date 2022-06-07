@@ -1,0 +1,23 @@
+[package]
+name = "cheshire"
+version = "0.2.0"
+authors = ["Chris Sadler <chris.r.sadler@gmail.com>"]
+edition = "2021"
+
+[workspace]
+
+[dependencies]
+pest = "2.1"
+pest_derive = "2.1"
+num_enum = "0.5"
+indexmap = "1.6"
+gc-arena = "0.2"
+gc-arena-derive = "0.2"
+thiserror = "1.0"
+
+[dev-dependencies]
+rstest = "0.12"
+
+[features]
+debug-trace-execution = []
+debug-print-code = []
